@@ -1,3 +1,18 @@
+#!/bin/bash
+
+set -eux -o pipefail
+
+trap 'catch $? $LINENO' ERR
+
+catch() {
+    echo ""
+    echo "ERROR CAUGHT!"
+    echo ""
+    echo "Error code $1 occurred on line $2"
+    echo ""
+    exit $1
+}
+
 # ==================================================================================
 #  This script will install and setup a quick helix proxy server
 # ==================================================================================
@@ -20,13 +35,17 @@ if [ -f /etc/os-release ]; then
     if [[ $OS =~ "Ubuntu" ]]; then
         VER=$VERSION_CODENAME
         wget -qO - https://package.perforce.com/perforce.pubkey | sudo apt-key add -
-        echo "deb http://package.perforce.com/apt/ubuntu $VER release" > /etc/apt/sources.list.d/perforce.list
+        echo "deb https://package.perforce.com/apt/ubuntu $VER release" > /etc/apt/sources.list.d/perforce.list
         apt-get update
         apt-get install -y helix-cli helix-proxy
     else
-        VER=$( echo $VERSION_ID | sed 's/\..\+//' )
+        if [[ $OS =~ "Amazon Linux" ]]; then
+            VER="7"
+        else
+            VER=$( echo $VERSION_ID | sed 's/\..\+//' )
+        fi
         sudo rpm --import https://package.perforce.com/perforce.pubkey
-        echo -e "[perforce]\nname=Perforce\nbaseurl=http://package.perforce.com/yum/rhel/$VERSION_ID/x86_64\nenabled=1\ngpgcheck=1" > /etc/yum.repos.d/perforce.repo
+        echo -e "[perforce]\nname=Perforce\nbaseurl=https://package.perforce.com/yum/rhel/$VER/x86_64\nenabled=1\ngpgcheck=1" > /etc/yum.repos.d/perforce.repo
         sudo yum install -y helix-cli helix-proxy
     fi
 else
